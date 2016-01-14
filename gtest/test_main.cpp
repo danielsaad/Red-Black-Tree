@@ -1,9 +1,17 @@
 #include <iostream>
+#include <vector>
+#include "rb_tree.hpp"
 #include "gtest/gtest.h"
 
-TEST(sample_test_case, sample_test)
-{
-    EXPECT_EQ(1, 1);
+using namespace std;
+using namespace algorithms;
+TEST(sample_test_case, sample_test){
+    vector<int> v;
+    rb_tree<int> t;
+    for(int i=0;i<10;i++){
+        t.insert(i);
+        v.push_back(i);
+    }
 }
 
 int main(int argc, char** argv) {
