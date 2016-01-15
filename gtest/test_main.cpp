@@ -8,10 +8,11 @@ using namespace algorithms;
 TEST(sample_test_case, sample_test){
     vector<int> v;
     rb_tree<int> t;
-    for(int i=0;i<10;i++){
+    for(int i=0;i<1000;i++){
         t.insert(i);
         v.push_back(i);
     }
+    t.print(t.root());
 }
 
 int main(int argc, char** argv) {

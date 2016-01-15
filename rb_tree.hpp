@@ -1,3 +1,7 @@
+#include <iostream>
+#include <cassert>
+using namespace std;
+
 namespace algorithms {
 
 template<class T> class rb_node;
@@ -13,35 +17,6 @@ public:
         m_parent = nullptr;
     }
 private:
-
-    bool is_red(){
-        if(this!=nullptr && m_red){
-            return true;
-        }
-        return false;
-    }
-
-    rb_node* father(){
-        return m_parent;
-    }
-
-    rb_node* grandfather(){
-        if(m_parent!=nullptr){
-            return(m_parent->m_parent);
-        }
-        return nullptr;
-    }
-    rb_node* uncle(){
-        if(m_parent!=nullptr){
-            if(m_parent->m_children[0] == this){
-                return m_parent->m_children[1];
-            }
-            else{
-                return m_parent->m_children[0];
-            }
-        }
-        return nullptr;
-    }
 
     bool m_red;
     T m_data;
@@ -62,56 +37,56 @@ public:
         m_root = nullptr;
     }
 
-    rb_tree<T>* root(){
+    rb_node<T>* root(){
         return m_root;
     }
 
-    print(rb_node<T>* v){
+    void print(rb_node<T>* v){
         if(v!=nullptr){
+            print(left(v));
             cout << v->m_data << "\n";
+            print(right(v));
         }
-        print(v->m_children[0]);
-        print(v->m_children[1]);
     }
 
     void left_rotate(rb_node<T>* x){
-        rb_node<T>* y = x->m_children[1];
-        x->m_children[1] = y->m_children[0];
-        if(y->m_children[0]!=nullptr){
-            y->m_children[0]->m_parent = x;
+        rb_node<T>* y = right(x);
+        right(x) = left(y);
+        if(left(y)!=nullptr){
+            father(left(y))=x;
         }
-        y->m_parent = x->m_parent;
-        if(y->father()==nullptr){ //update root;
+        father(y) = father(x);
+        if(father(y)==nullptr){ //update root;
             m_root = y;
         }
-        else if(x->father()->m_children[0] == x){
-            x->father()->m_children[0] = y;
+        else if(left(father(x)) == x){
+            left(father(x))=y;
         }
         else{
-            x->father()->m_children[1] = y;
+            right(father(x)) = y;
         }
-        y->m_children[0] = x;
-        x->m_parent = y;
+        left(y) = x;
+        father(x) = y;
     }
 
     void right_rotate(rb_node<T>* x){
-        rb_node<T>* y = x->m_children[0];
-        x->m_children[0] = y->m_children[1];
-        if(y->m_children[1]!=nullptr){
-            y->m_children[1]->m_parent = x;
+        rb_node<T>* y = left(x);
+        left(x) = right(y);
+        if(right(y)!=nullptr){
+            father(right(y))= x;
         }
-        y->m_parent = x->father();
-        if(y->m_parent==nullptr){
+        father(y) = father(x);
+        if(father(y)==nullptr){
             m_root = y;
         }
-        else if(x->father()->m_children[0]==x){
-            x->father()->m_children[0] = y;
+        else if(left(father(x))==x){
+            left(father(x)) = y;
         }
         else{
-            x->father()->m_children[1] = y;
+            right(father(x)) = y;
         }
-        y->m_children[1] = x;
-        x->m_parent = y;
+        right(y) = x;
+        father(x) = y;
     }
 
     void insert(const T& data){
@@ -132,38 +107,97 @@ public:
             m_root = z;
         }
         else if(z->m_data < y->m_data){
-            y->m_children[0] = z;
+            left(y) = z;
         }
         else{
-            y->m_children[1] = z;
+            right(y) = z;
         }
         fix_properties(z);
     }
 private:
     rb_node<T>* m_root;
 
+    bool is_red(rb_node<T>* v){
+        if(v!=nullptr && v->m_red){
+            return true;
+        }
+        return false;
+    }
+
     void fix_properties(rb_node<T>* z){
-        while(z->father()->is_red()){
-            rb_node<T>* y = z->uncle();
-            if(y->is_red()){ //we can flip the colors
-                y->m_red = false;
-                z->father()->m_red = false;
-                z->grandfather()->m_red = true;
-                z = z->grandfather();
+        while(is_red(father(z))){
+            if(father(z)==left(grandfather(z))){
+                rb_node<T>* y = uncle(z);
+                if(is_red(y)){ //we can flip the colors
+                    y->m_red = false;
+                    father(z)->m_red = false;
+                    grandfather(z)->m_red = true;
+                    z = grandfather(z);
+                }
+                else{
+                    if(z==right(father(z))){
+                        z = father(z);
+                        left_rotate(z);
+                    }
+                    father(z)->m_red = false;
+                    grandfather(z)->m_red = true;
+                    right_rotate(grandfather(z));
+                }
             }
             else{
-                if(z==z->father()->m_children[1]){
-                    z = z->father();
-                    left_rotate(z);
+                rb_node<T>* y = uncle(z);
+                if(is_red(y)){ //we can flip the colors
+                    y->m_red = false;
+                    father(z)->m_red = false;
+                    grandfather(z)->m_red = true;
+                    z = grandfather(z);
                 }
-                z->father()->m_red = false;
-                z->grandfather()->m_red = true;
-                right_rotate(z->grandfather());
+                else{
+                    if(z==left(father(z))){
+                        z = father(z);
+                        right_rotate(z);
+                    }
+                    father(z)->m_red = false;
+                    grandfather(z)->m_red = true;
+                    left_rotate(grandfather(z));
+                }
             }
         }
         m_root->m_red = false; //root is always black
     }
+    rb_node<T>*& left(rb_node<T>*& v){
+        if(v==nullptr){
+            return v;
+        }
+        return v->m_children[0];
+    }
 
+    rb_node<T>*& right(rb_node<T>*& v){
+        if(v==nullptr){
+            return v;
+        }
+        return v->m_children[1];
+    }
+
+    rb_node<T>*& father(rb_node<T>*& v){
+        if(v==nullptr){
+            return v;
+        }
+        return(v->m_parent);
+    }
+
+    rb_node<T>*& grandfather(rb_node<T>*& v){
+        return(father(father(v)));
+    }
+    rb_node<T>*& uncle(rb_node<T>*& v){
+        rb_node<T>* g = grandfather(v);
+        if(father(v)==left(g)){
+            return(right(g));
+        }
+        else{
+            return(left(g));
+        }
+    }
 };
 
 
