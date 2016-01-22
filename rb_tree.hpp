@@ -16,6 +16,7 @@ public:
         m_children[1] = nullptr;
         m_parent = nullptr;
     }
+
 private:
 
     bool m_red;
@@ -49,12 +50,67 @@ public:
         }
     }
 
+    size_t size(){
+        return m_size;
+    }
+
+    void clear(){
+        clear_helper(m_root);
+        m_root = nullptr;
+        m_size = 0;
+    }
+
+    void clear_helper(rb_node<T>* root){
+        if(root!=nullptr){
+            if(left(root)!=nullptr){
+                clear_helper(left(root));
+            }
+            if(right(root)!=nullptr){
+                clear_helper(right(root));
+            }
+            delete root;
+        }
+    }
+
     bool assert_properties(){
         if(assert_bst(m_root) && assert_root_color() && assert_red_violation(m_root) && assert_black_violation(m_root)){
             return true;
         }
 
         return false;
+    }
+
+    const T& operator*(const std::pair<rb_node<T>*,bool>& p){
+        return (p.first)->m_data;
+    }
+
+    void erase(const std::pair<rb_node<T>*,bool>& p){
+        if(p.first !=nullptr){
+            delete_node(p.first);
+        }
+    }
+
+    void erase(const T& data){
+        auto rv = find(data);
+        erase(rv);
+    }
+
+    //TODO: find shoul return a const value
+    //otherwise user can manipulate internal data..
+    std::pair<rb_node<T>*,bool> find(T data){
+        rb_node<T>* v = m_root;
+        while(v!=nullptr){
+            if(data < v->m_data){
+                v = left(v);
+            }
+            else if(data > v->m_data){
+                v = right(v);
+            }
+            else{
+                return(make_pair(v,true));
+            }
+        }
+        return (make_pair(v,false));
     }
 
     bool assert_root_color(){
@@ -228,7 +284,7 @@ public:
                         right_rotate(w);
                         w = right(father(x));
                     }
-                    w->m_red = father(w->m_red);
+                    w->m_red = father(w)->m_red;
                     father(x)->m_red = false;
                     right(w)->m_red = false;
                     left_rotate(father(x));
@@ -254,7 +310,7 @@ public:
                         left_rotate(w);
                         w = left(father(x));
                     }
-                    w->m_red = father(w->m_red);
+                    w->m_red = father(w)->m_red;
                     father(x)->m_red = false;
                     left(w)->m_red = false;
                     right_rotate(father(x));
@@ -262,7 +318,6 @@ public:
                 }
             }
         }
-        x->m_red = false;
     }
 
     rb_node<T>* rb_minimum(rb_node<T>* root){
@@ -292,6 +347,7 @@ public:
     void insert(T data){
         rb_node<T>* z = new rb_node<T>(data);
         rb_insert_node(z);
+        m_size++;
     }
 
 
@@ -320,9 +376,14 @@ public:
         }
         rb_insert_fix_properties(z);
     }
+
+    ~rb_tree(){
+        clear();
+    }
+
 private:
     rb_node<T>* m_root;
-
+    size_t m_size;
     bool is_red(rb_node<T>* v){
         if(v!=nullptr && v->m_red){
             return true;
