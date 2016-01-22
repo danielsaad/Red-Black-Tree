@@ -49,6 +49,86 @@ public:
         }
     }
 
+    bool assert_properties(){
+        if(assert_bst(m_root) && assert_root_color() && assert_red_violation(m_root) && assert_black_violation(m_root)){
+            return true;
+        }
+
+        return false;
+    }
+
+    bool assert_root_color(){
+        if(!is_red(m_root)){
+            return true;
+        }
+        return false;
+    }
+
+    bool assert_bst(rb_node<T>* v){
+        rb_node<T> *l,*r;
+        l = left(v);
+        r = right(v);
+        if(v!=nullptr){
+            if(l!=nullptr){
+                if(v->m_data < l->m_data ){
+                    return false;
+                }
+            }
+            if(r!=nullptr){
+                if(v->m_data > r->m_data){
+                    return false;
+                }
+            }
+            if(!assert_bst(l) || !assert_bst(r)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool assert_red_violation(rb_node<T>* x){
+        if(x!=nullptr){
+            if(is_red(x) && (is_red(left(x)) || is_red(right(x)))){
+                return false;
+            }
+            if(!assert_red_violation(left(x))){
+                return false;
+            }
+            if(!assert_red_violation(right(x))){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool assert_black_violation(rb_node<T>* root){
+        if(root!=nullptr){
+            if(black_height(left(root))!=black_height(right(root))){
+                return false;
+            }
+            if(!assert_black_violation(left(root))){
+                return false;
+            }
+            if(!assert_black_violation(right(root))){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    size_t black_height(rb_node<T>* root){
+        if(root == nullptr){
+            return 0;
+        }
+        else{
+            size_t v = 0;
+            if(!is_red(root)){
+                v = 1;
+            }
+            return v + max(black_height(left(root)),black_height(right(root)));
+        }
+    }
+
     void left_rotate(rb_node<T>* x){
         rb_node<T>* y = right(x);
         right(x) = left(y);
@@ -92,7 +172,7 @@ public:
     void delete_node(rb_node<T>* z){
         rb_node<T>* y = z;
         rb_node<T>* x;
-        bool y_color = z->m_red;
+        bool y_original_color = z->m_red;
         if(left(z)==nullptr){
             x = right(z);
             transplant(z,right(z));
@@ -103,10 +183,12 @@ public:
         }
         else{
             y = rb_minimum(right(z));
-            y_color = y->m_red;
+            y_original_color = y->m_red;
             x = right(y);
             if(father(y)==z){ //TODO: is this really necessary? x is alredy y's son.
-                father(x)=y;
+                if(x!=nullptr){
+                    father(x)=y;
+                }
             }
             else{
                 transplant(y,x);
@@ -116,8 +198,8 @@ public:
             transplant(z,y);
             left(y) = left(z);
             father(left(y)) = y;
-            y_color = z->m_red;
-            if(y_color==false){
+            y_original_color = z->m_red;
+            if(y_original_color==false){
                 rb_delete_fix_properties(x);
             }
 
@@ -126,12 +208,66 @@ public:
     }
 
     void rb_delete_fix_properties(rb_node<T>* x){
-
+        while(x!=m_root && !is_red(x)){
+            if(x == left(father(x))){
+                rb_node<T>* w = right(father(x)); //w is x sibling
+                if(is_red(w)){
+                    w->m_red = false;
+                    father(x)->m_red = true;
+                    left_rotate(father(x));
+                    w = right(father(x));
+                }
+                if(!is_red(left(w)) && !is_red(right(w))){ //both children of w are black
+                    w->m_red = true;
+                    x = father(x);
+                }
+                else{
+                    if(!is_red(right(w))){
+                        left(w)->m_red  = false;
+                        w->m_red = true;
+                        right_rotate(w);
+                        w = right(father(x));
+                    }
+                    w->m_red = father(w->m_red);
+                    father(x)->m_red = false;
+                    right(w)->m_red = false;
+                    left_rotate(father(x));
+                    x = m_root; // end loop
+                }
+            }
+            else{
+                rb_node<T>* w = left(father(x)); //w is x sibling
+                if(is_red(w)){
+                    w->m_red = false;
+                    father(x)->m_red = true;
+                    right_rotate(father(x));
+                    w = left(father(x));
+                }
+                if(!is_red(right(w)) && !is_red(left(w))){ //both children of w are black
+                    w->m_red = true;
+                    x = father(x);
+                }
+                else{
+                    if(!is_red(left(w))){
+                        right(w)->m_red  = false;
+                        w->m_red = true;
+                        left_rotate(w);
+                        w = left(father(x));
+                    }
+                    w->m_red = father(w->m_red);
+                    father(x)->m_red = false;
+                    left(w)->m_red = false;
+                    right_rotate(father(x));
+                    x = m_root; // end loop
+                }
+            }
+        }
+        x->m_red = false;
     }
 
     rb_node<T>* rb_minimum(rb_node<T>* root){
         rb_node<T>* prev = root;
-        while(root!=null){
+        while(root!=nullptr){
             prev = root;
             root = left(root);
         }
@@ -153,17 +289,23 @@ public:
         }
     }
 
-    void rb_insert_node(const T& data){
+    void insert(T data){
         rb_node<T>* z = new rb_node<T>(data);
+        rb_insert_node(z);
+    }
+
+
+
+    void rb_insert_node(rb_node<T>* z){
         rb_node<T>* x = m_root;
         rb_node<T>* y = nullptr;
         while(x!=nullptr){
             y = x;
-            if(data < x->m_data){
-                x = x->m_children[0];
+            if(z->m_data < x->m_data){
+                x = left(x);
             }
             else{
-                x = x->m_children[1];
+                x = right(x);
             }
         }
         z->m_parent = y;
