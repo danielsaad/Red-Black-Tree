@@ -9,7 +9,7 @@ TEST(sample_test_case, sample_test){
     vector<int> v;
     rb_tree<int> t;
     for(int i=0;i<1000;i++){
-        t.insert(i);
+        t.insert_node(i);
         v.push_back(i);
     }
     t.print(t.root());

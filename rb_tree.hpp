@@ -89,7 +89,71 @@ public:
         father(x) = y;
     }
 
-    void insert(const T& data){
+    void delete_node(rb_node<T>* z){
+        rb_node<T>* y = z;
+        rb_node<T>* x;
+        bool y_color = z->m_red;
+        if(left(z)==nullptr){
+            x = right(z);
+            transplant(z,right(z));
+        }
+        else if(right(z)==nullptr){
+            x = left(z);
+            transplant(z,left(z));
+        }
+        else{
+            y = rb_minimum(right(z));
+            y_color = y->m_red;
+            x = right(y);
+            if(father(y)==z){ //TODO: is this really necessary? x is alredy y's son.
+                father(x)=y;
+            }
+            else{
+                transplant(y,x);
+                right(y) = right(z);
+                father(right(y)) = y;
+            }
+            transplant(z,y);
+            left(y) = left(z);
+            father(left(y)) = y;
+            y_color = z->m_red;
+            if(y_color==false){
+                rb_delete_fix_properties(x);
+            }
+
+        }
+        delete z;
+    }
+
+    void rb_delete_fix_properties(rb_node<T>* x){
+
+    }
+
+    rb_node<T>* rb_minimum(rb_node<T>* root){
+        rb_node<T>* prev = root;
+        while(root!=null){
+            prev = root;
+            root = left(root);
+        }
+        return prev;
+    }
+
+    void transplant(rb_node<T>* u, rb_node<T>* v){
+        if(father(u)==nullptr){
+            m_root = v;
+        }
+        else if (u == left(father(u))){
+            left(father(u)) = v;
+        }
+        else{
+            right(father(u)) = v;
+        }
+        if(v!=nullptr){
+            father(v) = father(u);
+        }
+    }
+
+    void rb_insert_node(const T& data){
         rb_node<T>* z = new rb_node<T>(data);
         rb_node<T>* x = m_root;
         rb_node<T>* y = nullptr;
@@ -112,7 +176,7 @@ public:
         else{
             right(y) = z;
         }
-        fix_properties(z);
+        rb_insert_fix_properties(z);
     }
 private:
     rb_node<T>* m_root;
@@ -124,7 +188,7 @@ private:
         return false;
     }
 
-    void fix_properties(rb_node<T>* z){
+    void rb_insert_fix_properties(rb_node<T>* z){
         while(is_red(father(z))){
             if(father(z)==left(grandfather(z))){
                 rb_node<T>* y = uncle(z);
